@@ -49,7 +49,6 @@ Envelope frequency is
 
 
  */
-#include <Arduino.h>
 #include <hcYmzShield.h>
 #include <MIDI.h>
 

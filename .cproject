@@ -35,6 +35,8 @@
 								<option id="gnu.both.asm.option.include.paths.200908162" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduino}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1003636015" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -47,6 +49,7 @@
 									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/framework-arduinoavr/cores/arduino&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduino}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.970627152" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__AVR_ATmega328__"/>
@@ -59,6 +62,8 @@
 								<option id="gnu.c.compiler.option.include.paths.2048298653" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduino}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.364230918" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -102,6 +107,8 @@
 								<option id="gnu.both.asm.option.include.paths.971748859" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduino}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1410352223" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -114,6 +121,7 @@
 									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/framework-arduinoavr/cores/arduino&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduino}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.2030339384" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__AVR_ATmega328__"/>
@@ -126,6 +134,8 @@
 								<option id="gnu.c.compiler.option.include.paths.193121754" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduino}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.59233799" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -163,4 +173,5 @@
 			<resource resourceType="PROJECT" workspacePath="/ymz-synth"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>
