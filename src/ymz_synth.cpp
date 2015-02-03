@@ -44,11 +44,12 @@ Noise frequency is a 5-bit value (NP). Frequency is given by fN = fMaster (4MHz)
 A value of 0 is off.
 
 
-Volume is avialable per-channel, with range 0..15. Setting bit 5 (16) output level is determined by envelope generator value (i.e. LFO).
+Volume is available per-channel, with range 0..15. Setting bit 5 (16) output level is determined by envelope generator value (i.e. LFO).
 Envelope frequency is 
 
 
  */
+#include <Arduino.h>
 #include <hcYmzShield.h>
 #include <MIDI.h>
 
