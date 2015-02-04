@@ -33,10 +33,12 @@
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.macosx.exe.debug.554817023" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.macosx.exe.debug">
 								<option id="gnu.both.asm.option.include.paths.200908162" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/framework-arduinoavr/cores/arduino&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduino}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/lib/gcc/avr/4.8.1/include&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1003636015" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -46,10 +48,11 @@
 								<option id="gnu.cpp.compiler.macosx.exe.debug.option.debugging.level.1746650402" name="Debug Level" superClass="gnu.cpp.compiler.macosx.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.446128421" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/framework-arduinoavr/cores/arduino&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduino}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/lib/gcc/avr/4.8.1/include&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.970627152" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__AVR_ATmega328__"/>
@@ -60,10 +63,16 @@
 								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.macosx.exe.debug.option.optimization.level.831305359" name="Optimization Level" superClass="gnu.c.compiler.macosx.exe.debug.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
 								<option id="gnu.c.compiler.macosx.exe.debug.option.debugging.level.1615090715" name="Debug Level" superClass="gnu.c.compiler.macosx.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.include.paths.2048298653" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/framework-arduinoavr/cores/arduino&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduino}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/lib/gcc/avr/4.8.1/include&quot;"/>
+								</option>
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.171932619" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="__AVR_ATmega328__"/>
+									<listOptionValue builtIn="false" value="ARDUINO=158"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.364230918" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -109,6 +118,9 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/framework-arduinoavr/cores/arduino&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/lib/gcc/avr/4.8.1/include&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1410352223" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -122,6 +134,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduino}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/lib/gcc/avr/4.8.1/include&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.2030339384" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__AVR_ATmega328__"/>
@@ -136,6 +149,13 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ymz-synth/.pioenvs/usb_uno/FrameworkArduinoVariant}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/avr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/framework-arduinoavr/cores/arduino&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${HOME}/.platformio/packages/toolchain-atmelavr/lib/gcc/avr/4.8.1/include&quot;"/>
+								</option>
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.715366850" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="__AVR_ATmega328__"/>
+									<listOptionValue builtIn="false" value="ARDUINO=158"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.59233799" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

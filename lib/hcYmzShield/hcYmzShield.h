@@ -17,11 +17,11 @@
 #ifndef __HCYMZSHIELD_H
 #define __HCYMZSHIELD_H
 
-#if defined(ARDUINO) && ARDUINO >= 100
+//#if defined(ARDUINO) && ARDUINO >= 100
 #include <Arduino.h>
-#else
-#include <WProgram.h>
-#endif
+//#else
+//#include <WProgram.h>
+//#endif
 
 // Uncomment this if you mod your board for SPI access. SPI Pinning is:
 // * CS1  (YMZ284#1 PIN  1)  = 2
