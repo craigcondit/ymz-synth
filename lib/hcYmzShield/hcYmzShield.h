@@ -91,7 +91,7 @@
 #define STACCATO 20
 #define LEGATO 0
 
-#endif __HCINTERNALS
+#endif // __HCINTERNALS
 
 class hcYmzShield {
   public:
@@ -129,6 +129,9 @@ class hcYmzShield {
     void setRegisterPsg(uint8_t, uint8_t);
     void setRegisterPsg0(uint8_t, uint8_t);
     void setRegisterPsg1(uint8_t, uint8_t);
+    uint8_t getRegisterPsg(uint8_t);
+    uint8_t getRegisterPsg0(uint8_t);
+    uint8_t getRegisterPsg1(uint8_t);
   private:
     uint8_t _psg0Registers[0x0d];
     uint8_t _psg1Registers[0x0d];
@@ -152,4 +155,4 @@ class hcYmzShield {
 extern hcYmzShield YMZ;
 
 
-#endif __HCYMZSHIELD_H
+#endif // __HCYMZSHIELD_H

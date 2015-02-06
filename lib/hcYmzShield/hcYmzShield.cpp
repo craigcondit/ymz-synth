@@ -249,6 +249,26 @@ hcYmzShield::hcYmzShield() {
   setVolume(0);
 }
 
+/**
+ * accessor for _getRegisterPsg
+ */
+uint8_t hcYmzShield::getRegisterPsg(uint8_t reg) {
+	return _psg0Registers[reg];
+}
+
+/**
+ * accessor for _getRegisterPsg0
+ */
+uint8_t hcYmzShield::getRegisterPsg0(uint8_t reg) {
+	return _psg0Registers[reg];
+}
+
+/**
+ * accessor for _getRegisterPsg0
+ */
+uint8_t hcYmzShield::getRegisterPsg1(uint8_t reg) {
+	return _psg1Registers[reg];
+}
 
 /**
  * accessor for _setRegisterPsg
