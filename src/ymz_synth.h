@@ -6,6 +6,9 @@
 #include "MIDI.hpp"
 #include "hcYmzShield.h"
 
+typedef void (*regSet)(byte, byte);
+typedef byte (*regGet)(byte);
+
 #ifdef __cplusplus
 extern "C" {
 #endif

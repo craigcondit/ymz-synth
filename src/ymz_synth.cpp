@@ -48,9 +48,56 @@ const int LEDS[LED_COUNT] = { RED_LED, GREEN_LED, PINK_LED, WHITE_LED };
 
 volatile unsigned long redDecay = 0;
 
+// wrapper functions to allow pointer to functions
+
+void setRegisterPsg(byte reg, byte value) {
+	YMZ.setRegisterPsg(reg, value);
+}
+
+void setRegisterPsg0(byte reg, byte value) {
+	YMZ.setRegisterPsg1(reg, value);
+}
+
+void setRegisterPsg1(byte reg, byte value) {
+	YMZ.setRegisterPsg1(reg, value);
+}
+
+byte getRegisterPsg(byte reg) {
+	return YMZ.getRegisterPsg(reg);
+}
+
+byte getRegisterPsg0(byte reg) {
+	return YMZ.getRegisterPsg1(reg);
+}
+
+byte getRegisterPsg1(byte reg) {
+	return YMZ.getRegisterPsg1(reg);
+}
+
+// array of getter/setter pairs for the PSG registers -- used to allow per-MIDI channel mapping
+
+const regSet setters[3] =
+		{ &setRegisterPsg, &setRegisterPsg1, &setRegisterPsg0 };
+const regGet getters[3] =
+		{ &getRegisterPsg, &getRegisterPsg1, &getRegisterPsg0 };
+
+/**
+ * Pulse the red LED when MIDI activity is generated.
+ */
 void midiActivity() {
 	digitalWrite(RED_LED, HIGH);
 	redDecay = millis() + 50;
+}
+
+/**
+ * Decay the LEDs
+ */
+void decayLeds() {
+	unsigned long time = millis();
+	if (redDecay < time || redDecay > (time + 30000L)) {
+		redDecay = 0;
+		digitalWrite(RED_LED, LOW);
+	}
 }
 
 void handleNoteOn(byte channel, byte pitch, byte velocity) {
@@ -78,6 +125,16 @@ void handleNoteOff(byte channel, byte pitch, byte velocity) {
 	YMZ.setNote(3, OFF);
 	YMZ.setNote(4, OFF);
 	YMZ.setNote(5, OFF);
+}
+
+bool inline isMusicMode(byte channel) {
+	return (channel == CHANNEL_STEREO || channel == CHANNEL_LEFT
+			|| channel == CHANNEL_RIGHT);
+}
+
+bool inline isNoiseMode(byte channel) {
+	return (channel == CHANNEL_NOISE_STEREO || channel == CHANNEL_NOISE_LEFT
+			|| channel == CHANNEL_NOISE_RIGHT);
 }
 
 bool inline isRawMode(byte channel) {
@@ -231,6 +288,7 @@ void setRegister(byte channel, byte reg, byte value) {
 }
 
 void handleControlChange(byte channel, byte number, byte value) {
+	midiActivity();
 	if (isRawMode(channel)) {
 		switch (number) {
 		case CC_CHANNEL_A_FREQ_MSB:
@@ -317,11 +375,7 @@ void setup() {
 }
 
 void loop() {
-	unsigned long time = millis();
-	if (redDecay < time || redDecay > (time + 30000L)) {
-		redDecay = 0;
-		digitalWrite(RED_LED, LOW);
-	}
+	decayLeds();
 	MIDI.read();
 }
 

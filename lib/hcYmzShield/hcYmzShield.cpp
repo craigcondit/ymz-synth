@@ -336,7 +336,7 @@ void hcYmzShield::_setRegisterPsg0(uint8_t reg, uint8_t data) {
   _psg1Write();
   
   // Copy the byte to the internal register map
-  _psg1Registers[reg] = data;
+  _psg0Registers[reg] = data;
 
   _debugLightOff();
 }
@@ -361,7 +361,7 @@ void hcYmzShield::_setRegisterPsg1(uint8_t reg, uint8_t data) {
   _psg0Write();
   
   // Copy the byte to the internal register map
-  _psg0Registers[reg] = data;
+  _psg1Registers[reg] = data;
 
   _debugLightOff();
 }
@@ -552,7 +552,7 @@ void hcYmzShield::setTone(uint8_t channel, bool isEnabled) {
   if(channel > 2)
     _setRegisterPsg1(0x07, (isEnabled ? _psg1Registers[0x07] & ~(1 << (channel - 3)) : _psg1Registers[0x07] | (1 << (channel - 3))) & 0x3f);
   else
-    _setRegisterPsg0(0x07, (isEnabled ? _psg1Registers[0x07] & ~(1 << channel) : _psg1Registers[0x07] | (1 << channel)) & 0x3f);
+    _setRegisterPsg0(0x07, (isEnabled ? _psg0Registers[0x07] & ~(1 << channel) : _psg0Registers[0x07] | (1 << channel)) & 0x3f);
 }
 
 
@@ -578,7 +578,7 @@ void hcYmzShield::setNoise(uint8_t channel, bool isEnabled) {
   if(channel > 2)
     _setRegisterPsg1(0x07, (isEnabled ? _psg1Registers[0x07] & ~(1 << channel) : _psg1Registers[0x07] | (1 << channel)) & 0x3f);
   else
-    _setRegisterPsg0(0x07, (isEnabled ? _psg1Registers[0x07] & ~(1 << (channel + 3)) : _psg1Registers[0x07] | (1 << (channel + 3))) & 0x3f);
+    _setRegisterPsg0(0x07, (isEnabled ? _psg0Registers[0x07] & ~(1 << (channel + 3)) : _psg0Registers[0x07] | (1 << (channel + 3))) & 0x3f);
 }
 
 
