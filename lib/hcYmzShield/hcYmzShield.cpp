@@ -235,8 +235,8 @@ hcYmzShield::hcYmzShield() {
   #endif
   
   // Initialize register backup to 0
-  memset(_psg0Registers, 0, 0x0d);
-  memset(_psg1Registers, 0, 0x0d);
+  memset(_psg0Registers, 0, 16);
+  memset(_psg1Registers, 0, 16);
   
   // Set default tempo
   _bpm = MODERATO;

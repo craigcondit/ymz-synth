@@ -34,12 +34,10 @@
 #define CC_CHANNEL_A_LEVEL 25
 #define CC_CHANNEL_B_LEVEL 26
 #define CC_CHANNEL_C_LEVEL 27
-#define CC_ENVELOPE_FREQ_MSB 28
-#define CC_ENVELOPE_FREQ_LSB 60
-#define CC_ENVELOPE_SHAPE 29
-#define CC_ENVELOPE_VALUE_MSB 30
-#define CC_ENVELOPE_VALUE_LSB 62
-#define CC_CONTROL_POWER 31
+#define CC_ENVELOPE_FREQ_HIGH 28 // high 7 bits
+#define CC_ENVELOPE_FREQ_MED 29  // middle 7 bits
+#define CC_ENVELOPE_FREQ_LOW 30  // low 2 bits
+#define CC_ENVELOPE_SHAPE 31
 
 MIDI_CREATE_DEFAULT_INSTANCE();
 
@@ -82,6 +80,31 @@ const regGet getters[3] =
 		{ &getRegisterPsg, &getRegisterPsg1, &getRegisterPsg0 };
 
 /**
+ * Is the given MIDI channel used for normal music output?
+ */
+bool inline isMusicMode(byte channel) {
+	return (channel == CHANNEL_STEREO || channel == CHANNEL_LEFT
+			|| channel == CHANNEL_RIGHT);
+}
+
+/**
+ * Is the given MIDI channel used for noise output?
+ */
+bool inline isNoiseMode(byte channel) {
+	return (channel == CHANNEL_NOISE_STEREO || channel == CHANNEL_NOISE_LEFT
+			|| channel == CHANNEL_NOISE_RIGHT);
+}
+
+/**
+ * Is the given MIDI channel used for raw register output?
+ */
+bool inline isRawMode(byte channel) {
+	return (channel == CHANNEL_RAW_STEREO || channel == CHANNEL_RAW_LEFT
+			|| channel == CHANNEL_RAW_RIGHT);
+}
+
+
+/**
  * Pulse the red LED when MIDI activity is generated.
  */
 void midiActivity() {
@@ -100,9 +123,16 @@ void decayLeds() {
 	}
 }
 
+/**
+ * Process MIDI NOTE ON messages.
+ */
 void handleNoteOn(byte channel, byte pitch, byte velocity) {
+	if (!isMusicMode(channel)) {
+		return;
+	}
 	midiActivity();
 
+	// TODO handle multiple channels (stereo/left/right) as well as polyphony.
 	YMZ.setNote(0, pitch);
 	YMZ.setNote(1, pitch + 4);
 	YMZ.setNote(2, pitch + 7);
@@ -113,11 +143,12 @@ void handleNoteOn(byte channel, byte pitch, byte velocity) {
 }
 
 void handleNoteOff(byte channel, byte pitch, byte velocity) {
+	if (!isMusicMode(channel)) {
+		return;
+	}
 	midiActivity();
 
-	if (velocity < 10) {
-		velocity = 10;
-	}
+	// TODO handle multiple channels (stereo/left/right) as well as polyphony.
 
 	YMZ.setNote(0, OFF);
 	YMZ.setNote(1, OFF);
@@ -125,21 +156,6 @@ void handleNoteOff(byte channel, byte pitch, byte velocity) {
 	YMZ.setNote(3, OFF);
 	YMZ.setNote(4, OFF);
 	YMZ.setNote(5, OFF);
-}
-
-bool inline isMusicMode(byte channel) {
-	return (channel == CHANNEL_STEREO || channel == CHANNEL_LEFT
-			|| channel == CHANNEL_RIGHT);
-}
-
-bool inline isNoiseMode(byte channel) {
-	return (channel == CHANNEL_NOISE_STEREO || channel == CHANNEL_NOISE_LEFT
-			|| channel == CHANNEL_NOISE_RIGHT);
-}
-
-bool inline isRawMode(byte channel) {
-	return (channel == CHANNEL_RAW_STEREO || channel == CHANNEL_RAW_LEFT
-			|| channel == CHANNEL_RAW_RIGHT);
 }
 
 void setEnvelopeValueMsb(byte channel, byte reg, byte value) {
@@ -168,107 +184,153 @@ void setEnvelopeValueMsb(byte channel, byte reg, byte value) {
 }
 
 void setChannelFreqMsb(byte channel, byte reg, byte value) {
-	// get current value
-	uint8_t prevFine;
-	uint8_t prevCoarse;
-	switch (channel) {
-	case CHANNEL_RAW_STEREO:
-		prevCoarse = YMZ.getRegisterPsg(reg + 1);
-		prevFine = YMZ.getRegisterPsg(reg);
-		break;
-	case CHANNEL_RAW_LEFT:
-		prevCoarse = YMZ.getRegisterPsg1(reg + 1);
-		prevFine = YMZ.getRegisterPsg1(reg);
-		break;
-	case CHANNEL_RAW_RIGHT:
-		prevCoarse = YMZ.getRegisterPsg0(reg + 1);
-		prevFine = YMZ.getRegisterPsg0(reg);
-		break;
-	default:
+	if (!isRawMode(channel)) {
 		return;
 	}
-	uint16_t prev = ((uint16_t) prevCoarse & 0xff) << 8 + ((uint16_t) prevFine);
-	uint16_t curr = ((((uint16_t) value) & 0x7f) << 7);
 
-	// mask off bits we aren't changing
-	prev &= 0x001f;
+	// get current value
+	uint8_t oldFine = getters[channel - CHANNEL_RAW_STEREO](reg);
+	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](reg + 1);
+
+	// shift lower 4 bits of oldRough measurement up 8 bits and add oldFine; giving 12-bit number [0..16383]
+	uint16_t buf = ((uint16_t) (oldRough & B00001111)) << 8 + ((uint16_t) oldFine);
+
+	// take new value, use as most significant 7 bits
+	uint16_t newValue = ((uint16_t) (value & B01111111)) << 5;
+
+	// mask off bits we aren't changing (lower 5 bits)
+	buf &= 0x001f;
 
 	// add bits we are
-	curr |= prev;
+	buf |= newValue;
 
 	// split to new MSB/LSB
-	uint8_t fine = curr & 0xff;
-	uint8_t coarse = (curr & 0x0f00) >> 8;
+	uint8_t newFine = buf & 0xff; // lower 8 bits
+	uint8_t newRough = ((uint8_t)(buf >> 8)) & B00001111; // upper 4 bits
 
 	// update
-	switch (channel) {
-	case CHANNEL_RAW_STEREO:
-		YMZ.setRegisterPsg(reg, fine);
-		YMZ.setRegisterPsg(reg + 1, coarse);
-		break;
-	case CHANNEL_RAW_LEFT:
-		YMZ.setRegisterPsg1(reg, fine);
-		YMZ.setRegisterPsg1(reg + 1, coarse);
-		break;
-	case CHANNEL_RAW_RIGHT:
-		YMZ.setRegisterPsg0(reg, fine);
-		YMZ.setRegisterPsg0(reg + 1, coarse);
-		break;
-	default:
-		return;
-	}
+	setters[channel - CHANNEL_RAW_STEREO](reg, newFine);
+	setters[channel - CHANNEL_RAW_STEREO](reg + 1, newRough);
 }
 
 void setChannelFreqLsb(byte channel, byte reg, byte value) {
-	// get current value
-	uint8_t prevFine;
-	uint8_t prevCoarse;
-	switch (channel) {
-	case CHANNEL_RAW_STEREO:
-		prevCoarse = YMZ.getRegisterPsg(reg + 1);
-		prevFine = YMZ.getRegisterPsg(reg);
-		break;
-	case CHANNEL_RAW_LEFT:
-		prevCoarse = YMZ.getRegisterPsg1(reg + 1);
-		prevFine = YMZ.getRegisterPsg1(reg);
-		break;
-	case CHANNEL_RAW_RIGHT:
-		prevCoarse = YMZ.getRegisterPsg0(reg + 1);
-		prevFine = YMZ.getRegisterPsg0(reg);
-		break;
-	default:
+	if (!isRawMode(channel)) {
 		return;
 	}
-	uint16_t prev = ((uint16_t) prevCoarse & 0xff) << 8 + ((uint16_t) prevFine);
-	uint16_t curr = ((((uint16_t) value) & 0x7f) << 7);
 
-	// mask off bits we aren't changing
-	prev &= 0x0f80;
+	// get current value
+	uint8_t oldFine = getters[channel - CHANNEL_RAW_STEREO](reg);
+	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](reg + 1);
+
+	// shift lower 4 bits of oldRough measurement up 8 bits and add oldFine; giving 12-bit number [0..16383]
+	uint16_t buf = ((uint16_t) (oldRough & B00001111)) << 8 + ((uint16_t) oldFine);
+
+	// take new value, use as least significant 5 bits
+	uint16_t newValue = ((uint16_t) (value & B01111100)) >> 2;
+
+	// mask off bits we aren't changing (upper 7 bits)
+	buf &= 0x0fe0; // 0000 1111 1110 0000
 
 	// add bits we are
-	curr |= prev;
+	buf |= newValue;
 
 	// split to new MSB/LSB
-	uint8_t fine = curr & 0xff;
-	uint8_t coarse = (curr & 0x0f00) >> 8;
+	uint8_t newFine = buf & 0xff; // lower 8 bits
+	uint8_t newRough = ((uint8_t)(buf >> 8)) & B00001111; // upper 4 bits
 
 	// update
-	switch (channel) {
-	case CHANNEL_RAW_STEREO:
-		YMZ.setRegisterPsg(reg, fine);
-		YMZ.setRegisterPsg(reg + 1, coarse);
-		break;
-	case CHANNEL_RAW_LEFT:
-		YMZ.setRegisterPsg1(reg, fine);
-		YMZ.setRegisterPsg1(reg + 1, coarse);
-		break;
-	case CHANNEL_RAW_RIGHT:
-		YMZ.setRegisterPsg0(reg, fine);
-		YMZ.setRegisterPsg0(reg + 1, coarse);
-		break;
-	default:
+	setters[channel - CHANNEL_RAW_STEREO](reg, newFine);
+	setters[channel - CHANNEL_RAW_STEREO](reg + 1, newRough);
+}
+
+void setEnvelopeFreqHigh(byte channel, byte value) {
+	if (!isRawMode(channel)) {
 		return;
 	}
+
+	// get current value
+	uint8_t oldFine = getters[channel - CHANNEL_RAW_STEREO](0x0b);
+	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](0x0c);
+
+	// shift lower 8 bits of oldRough measurement up 8 bits and add oldFine; giving 16-bit number
+	uint16_t buf = ((uint16_t) (oldRough)) << 8 + ((uint16_t) oldFine);
+
+	// take new value, use as bits 9-15
+	uint16_t newValue = ((uint16_t) (value & B01111111)) << 9;
+
+	// mask off bits we aren't changing (bits 9-15)
+	buf &= 0xfe00; // 1111 1110 0000 0000
+
+	// add bits we are
+	buf |= newValue;
+
+	// split to new MSB/LSB
+	uint8_t newFine = buf & 0xff; // lower 8 bits
+	uint8_t newRough = ((uint8_t)(buf >> 8)); // upper 8 bits
+
+	// update
+	setters[channel - CHANNEL_RAW_STEREO](0x0b, newFine);
+	setters[channel - CHANNEL_RAW_STEREO](0x0c, newRough);
+}
+
+void setEnvelopeFreqMed(byte channel, byte value) {
+	if (!isRawMode(channel)) {
+		return;
+	}
+
+	// get current value
+	uint8_t oldFine = getters[channel - CHANNEL_RAW_STEREO](0x0b);
+	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](0x0c);
+
+	// shift lower 8 bits of oldRough measurement up 8 bits and add oldFine; giving 16-bit number
+	uint16_t buf = ((uint16_t) (oldRough)) << 8 + ((uint16_t) oldFine);
+
+	// take new value, use as bits 2-8
+	uint16_t newValue = ((uint16_t) (value & B01111111)) << 2;
+
+	// mask off bits we aren't changing (bits 2-8)
+	buf &= 0x0dfc; // 0000 1101 1111 1100
+
+	// add bits we are
+	buf |= newValue;
+
+	// split to new MSB/LSB
+	uint8_t newFine = buf & 0xff; // lower 8 bits
+	uint8_t newRough = ((uint8_t)(buf >> 8)); // upper 8 bits
+
+	// update
+	setters[channel - CHANNEL_RAW_STEREO](0x0b, newFine);
+	setters[channel - CHANNEL_RAW_STEREO](0x0c, newRough);
+}
+
+void setEnvelopeFreqLow(byte channel, byte value) {
+	if (!isRawMode(channel)) {
+		return;
+	}
+
+	// get current value
+	uint8_t oldFine = getters[channel - CHANNEL_RAW_STEREO](0x0b);
+	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](0x0c);
+
+	// shift lower 8 bits of oldRough measurement up 8 bits and add oldFine; giving 16-bit number
+	uint16_t buf = ((uint16_t) (oldRough)) << 8 + ((uint16_t) oldFine);
+
+	// take new value, use as bits 0-2
+	uint16_t newValue = ((uint16_t) (value & B01100000)) >> 5;
+
+	// mask off bits we aren't changing (bits 0-1)
+	buf &= 0x0003; // 0000 0000 0000 0011
+
+	// add bits we are
+	buf |= newValue;
+
+	// split to new MSB/LSB
+	uint8_t newFine = buf & 0xff; // lower 8 bits
+	uint8_t newRough = ((uint8_t)(buf >> 8)); // upper 8 bits
+
+	// update
+	setters[channel - CHANNEL_RAW_STEREO](0x0b, newFine);
+	setters[channel - CHANNEL_RAW_STEREO](0x0c, newRough);
 }
 
 void setRegister(byte channel, byte reg, byte value) {
@@ -288,61 +350,59 @@ void setRegister(byte channel, byte reg, byte value) {
 }
 
 void handleControlChange(byte channel, byte number, byte value) {
+	if (!isRawMode(channel)) {
+		return;
+	}
 	midiActivity();
-	if (isRawMode(channel)) {
-		switch (number) {
-		case CC_CHANNEL_A_FREQ_MSB:
-			setChannelFreqMsb(channel, 0x00, value);
-			break;
-		case CC_CHANNEL_B_FREQ_MSB:
-			setChannelFreqMsb(channel, 0x02, value);
-			break;
-		case CC_CHANNEL_C_FREQ_MSB:
-			setChannelFreqMsb(channel, 0x04, value);
-			break;
-		case CC_CHANNEL_A_FREQ_LSB:
-			setChannelFreqLsb(channel, 0x00, value);
-			break;
-		case CC_CHANNEL_B_FREQ_LSB:
-			setChannelFreqLsb(channel, 0x02, value);
-			break;
-		case CC_CHANNEL_C_FREQ_LSB:
-			setChannelFreqLsb(channel, 0x04, value);
-			break;
-		case CC_NOISE_FREQ:
-			setRegister(channel, 0x06, value & 0x1f);
-			break;
-		case CC_MIXER:
-			setRegister(channel, 0x07, value & 0x3f);
-			break;
-		case CC_CHANNEL_A_LEVEL:
-			setRegister(channel, 0x08, value & 0x1f);
-			break;
-		case CC_CHANNEL_B_LEVEL:
-			setRegister(channel, 0x09, value & 0x1f);
-			break;
-		case CC_CHANNEL_C_LEVEL:
-			setRegister(channel, 0x0a, value & 0x1f);
-			break;
-		case CC_ENVELOPE_FREQ_MSB:
-			// TODO
-			break;
-		case CC_ENVELOPE_FREQ_LSB:
-			// TODO
-			break;
-		case CC_ENVELOPE_SHAPE:
-			setRegister(channel, 0x0d, value & 0x0f);
-			break;
-		case CC_ENVELOPE_VALUE_MSB:
-			// TODO
-			break;
-		case CC_ENVELOPE_VALUE_LSB:
-			// TODO
-			break;
-		case CC_CONTROL_POWER:
-			setRegister(channel, 0x0f, value & 0x0f);
-			break;
-		}
+
+	value &= B01111111; // make 7-bit clean
+
+	switch (number) {
+	case CC_CHANNEL_A_FREQ_MSB:
+		setChannelFreqMsb(channel, 0x00, value);
+		break;
+	case CC_CHANNEL_B_FREQ_MSB:
+		setChannelFreqMsb(channel, 0x02, value);
+		break;
+	case CC_CHANNEL_C_FREQ_MSB:
+		setChannelFreqMsb(channel, 0x04, value);
+		break;
+	case CC_CHANNEL_A_FREQ_LSB:
+		setChannelFreqLsb(channel, 0x00, value);
+		break;
+	case CC_CHANNEL_B_FREQ_LSB:
+		setChannelFreqLsb(channel, 0x02, value);
+		break;
+	case CC_CHANNEL_C_FREQ_LSB:
+		setChannelFreqLsb(channel, 0x04, value);
+		break;
+	case CC_NOISE_FREQ: // 5 bits
+		setRegister(channel, 0x06, (value >> 2) & B00011111); // 7 -> 5 bits
+		break;
+	case CC_MIXER:
+		setRegister(channel, 0x07, (value >> 1) & B00111111); // 7 -> 6 bits
+		break;
+	case CC_CHANNEL_A_LEVEL:
+		setRegister(channel, 0x08, (value >> 2) & B00011111); // 7 -> 5 bits
+		break;
+	case CC_CHANNEL_B_LEVEL:
+		setRegister(channel, 0x09, (value >> 2) & B00011111); // 7 -> 5 bits
+		break;
+	case CC_CHANNEL_C_LEVEL:
+		setRegister(channel, 0x0a, (value >> 2) & B00011111); // 7 -> 5 bits
+		break;
+	case CC_ENVELOPE_FREQ_HIGH:
+		setEnvelopeFreqHigh(channel, value);
+		break;
+	case CC_ENVELOPE_FREQ_MED:
+		setEnvelopeFreqMed(channel, value);
+		break;
+	case CC_ENVELOPE_FREQ_LOW:
+		setEnvelopeFreqLow(channel, value);
+		break;
+	case CC_ENVELOPE_SHAPE:
+		setRegister(channel, 0x0d, (value >> 3) & B00001111); // 7 -> 4 bits
+		break;
 	}
 }
 
@@ -352,17 +412,28 @@ void setup() {
 		digitalWrite(LEDS[i], LOW);
 	}
 
+	// clear all YMZ registers
+	for (byte i = 0x00; i < 0x0d; i++) {
+		YMZ.setRegisterPsg(i, 0x00);
+	}
+
+	// turn off all sound
 	YMZ.mute();
+
+	// set default tempo and articulation
 	YMZ.setTempo(120);
 	YMZ.setArticulation(LEGATO);
 
+	// set event handlers
 	MIDI.setHandleNoteOn(handleNoteOn);
 	MIDI.setHandleNoteOff(handleNoteOff);
 	MIDI.setHandleControlChange(handleControlChange);
 
-	MIDI.begin(MIDI_CHANNEL_OMNI); // TODO make input channel configurable
+	// listen to all channels
+	MIDI.begin(MIDI_CHANNEL_OMNI);
 	MIDI.turnThruOff();
 
+	// default volume for music
 	YMZ.setVolume(10);
 
 	// let the user know we're ready to go by flashing all the lights
