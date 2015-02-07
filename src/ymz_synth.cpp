@@ -39,6 +39,10 @@
 #define CC_ENVELOPE_FREQ_LOW 30  // low 2 bits
 #define CC_ENVELOPE_SHAPE 31
 
+#define CC_DEBUG 119
+
+const byte hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
 MIDI_CREATE_DEFAULT_INSTANCE();
 
 // define an array of LEDs so we can do patterns (left to right)
@@ -127,6 +131,33 @@ void decayLeds() {
 	}
 }
 
+void debugMidi(byte value) {
+	MIDI.sendControlChange(CC_DEBUG, value & 0x7f, 1);
+}
+
+void debugMidiBinary(byte value) {
+	for (int i = 7; i >= 0; i--) {
+		byte send = (value >> i) & 0x01;
+		MIDI.sendControlChange(CC_DEBUG, (send == 0) ? '0' : '1', 1);
+		if (i == 4) {
+			MIDI.sendControlChange(CC_DEBUG, ' ', 1);
+		}
+	}
+}
+
+void debugMidiHex(byte value) {
+	byte high = (value & B11110000) >> 4;
+	byte low = (value & B00001111);
+	MIDI.sendControlChange(CC_DEBUG, hex[high], 1);
+	MIDI.sendControlChange(CC_DEBUG, hex[low], 1);
+}
+
+void debugMidiStr(char * value) {
+	for (int i = 0; i < strlen(value); i++) {
+		MIDI.sendControlChange(CC_DEBUG, value[i], 1);
+	}
+}
+
 /**
  * Process MIDI NOTE ON messages.
  */
@@ -184,31 +215,6 @@ void handleNoteOff(byte channel, byte pitch, byte velocity) {
 	YMZ.setNote(5, OFF);
 }
 
-void setEnvelopeValueMsb(byte channel, byte reg, byte value) {
-	// get current value
-	uint8_t prevFine;
-	uint8_t prevCoarse;
-	switch (channel) {
-	case CHANNEL_RAW_STEREO:
-		prevCoarse = YMZ.getRegisterPsg(reg + 1);
-		prevFine = YMZ.getRegisterPsg(reg);
-		break;
-	case CHANNEL_RAW_LEFT:
-		prevCoarse = YMZ.getRegisterPsg1(reg + 1);
-		prevFine = YMZ.getRegisterPsg1(reg);
-		break;
-	case CHANNEL_RAW_RIGHT:
-		prevCoarse = YMZ.getRegisterPsg0(reg + 1);
-		prevFine = YMZ.getRegisterPsg0(reg);
-		break;
-	default:
-		return;
-	}
-	uint16_t prev = ((uint16_t) prevCoarse & 0xff) << 8 + ((uint16_t) prevFine);
-	uint16_t curr = ((((uint16_t) value) & 0x7f) << 7);
-
-}
-
 void setChannelFreqMsb(byte channel, byte reg, byte value) {
 	if (!isRawMode(channel)) {
 		return;
@@ -219,14 +225,15 @@ void setChannelFreqMsb(byte channel, byte reg, byte value) {
 	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](reg + 1);
 
 	// shift lower 4 bits of oldRough measurement up 8 bits and add oldFine; giving 12-bit number [0..16383]
-	uint16_t buf = ((uint16_t) (oldRough & B00001111))
-			<< 8 + ((uint16_t) oldFine);
-
-	// take new value, use as most significant 7 bits
-	uint16_t newValue = ((uint16_t) (value & B01111111)) << 5;
+	uint16_t buf = (uint16_t) (oldRough & B00001111);
+	buf <<= 8;
+	buf += oldFine;
 
 	// mask off bits we aren't changing (lower 5 bits)
 	buf &= 0x001f;
+
+	// take new value, use as most significant 7 bits
+	uint16_t newValue = (uint16_t) (value & B01111111) << 5;
 
 	// add bits we are
 	buf |= newValue;
@@ -250,14 +257,15 @@ void setChannelFreqLsb(byte channel, byte reg, byte value) {
 	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](reg + 1);
 
 	// shift lower 4 bits of oldRough measurement up 8 bits and add oldFine; giving 12-bit number [0..16383]
-	uint16_t buf = ((uint16_t) (oldRough & B00001111))
-			<< 8 + ((uint16_t) oldFine);
-
-	// take new value, use as least significant 5 bits
-	uint16_t newValue = ((uint16_t) (value & B01111100)) >> 2;
+	uint16_t buf = (uint16_t) (oldRough & B00001111);
+	buf <<= 8;
+	buf += oldFine;
 
 	// mask off bits we aren't changing (upper 7 bits)
 	buf &= 0x0fe0; // 0000 1111 1110 0000
+
+	// take new value, use as least significant 5 bits
+	uint16_t newValue = ((uint16_t) (value & B01111100)) >> 2;
 
 	// add bits we are
 	buf |= newValue;
@@ -281,13 +289,16 @@ void setEnvelopeFreqHigh(byte channel, byte value) {
 	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](0x0c);
 
 	// shift lower 8 bits of oldRough measurement up 8 bits and add oldFine; giving 16-bit number
-	uint16_t buf = ((uint16_t) (oldRough)) << 8 + ((uint16_t) oldFine);
-
-	// take new value, use as bits 9-15
-	uint16_t newValue = ((uint16_t) (value & B01111111)) << 9;
+	uint16_t buf = oldRough;
+	buf <<= 8;
+	buf += oldFine;
 
 	// mask off bits we aren't changing (bits 9-15)
-	buf &= 0xfe00; // 1111 1110 0000 0000
+	buf &= 0x01ff; // 0000 0001 1111 1111
+
+	// take new value, use as bits 9-15
+	uint16_t newValue = value & B01111111;
+	newValue <<= 9;
 
 	// add bits we are
 	buf |= newValue;
@@ -311,13 +322,16 @@ void setEnvelopeFreqMed(byte channel, byte value) {
 	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](0x0c);
 
 	// shift lower 8 bits of oldRough measurement up 8 bits and add oldFine; giving 16-bit number
-	uint16_t buf = ((uint16_t) (oldRough)) << 8 + ((uint16_t) oldFine);
-
-	// take new value, use as bits 2-8
-	uint16_t newValue = ((uint16_t) (value & B01111111)) << 2;
+	uint16_t buf = oldRough;
+	buf <<= 8;
+	buf += oldFine;
 
 	// mask off bits we aren't changing (bits 2-8)
-	buf &= 0x0dfc; // 0000 1101 1111 1100
+	buf &= 0xfe03; // 1111 1110 0000 0011
+
+	// take new value, use as bits 2-8
+	uint16_t newValue = value & B01111111;
+	newValue <<= 2;
 
 	// add bits we are
 	buf |= newValue;
@@ -341,13 +355,16 @@ void setEnvelopeFreqLow(byte channel, byte value) {
 	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](0x0c);
 
 	// shift lower 8 bits of oldRough measurement up 8 bits and add oldFine; giving 16-bit number
-	uint16_t buf = ((uint16_t) (oldRough)) << 8 + ((uint16_t) oldFine);
-
-	// take new value, use as bits 0-2
-	uint16_t newValue = ((uint16_t) (value & B01100000)) >> 5;
+	uint16_t buf = oldRough;
+	buf <<= 8;
+	buf += oldFine;
 
 	// mask off bits we aren't changing (bits 0-1)
-	buf &= 0x0003; // 0000 0000 0000 0011
+	buf &= 0xfffc; // 0000 0000 0000 0011
+
+	// take new value, use as bits 0-2
+	uint16_t newValue = value & B01100000;
+	newValue >>= 5;
 
 	// add bits we are
 	buf |= newValue;
