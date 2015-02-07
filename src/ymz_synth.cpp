@@ -43,8 +43,7 @@ MIDI_CREATE_DEFAULT_INSTANCE();
 
 // define an array of LEDs so we can do patterns (left to right)
 const int LEDS[LED_COUNT] = { RED_LED, GREEN_LED, PINK_LED, WHITE_LED };
-
-volatile unsigned long redDecay = 0;
+volatile unsigned long decay[LED_COUNT] = { 0, 0, 0, 0 };
 
 // wrapper functions to allow pointer to functions
 
@@ -103,13 +102,16 @@ bool inline isRawMode(byte channel) {
 			|| channel == CHANNEL_RAW_RIGHT);
 }
 
-
 /**
  * Pulse the red LED when MIDI activity is generated.
  */
-void midiActivity() {
-	digitalWrite(RED_LED, HIGH);
-	redDecay = millis() + 50;
+void midiActivity(int led) {
+	digitalWrite(led, HIGH);
+	for (int i = 0; i < LED_COUNT; i++) {
+		if (LEDS[i] == led) {
+			decay[i] = millis() + 50L;
+		}
+	}
 }
 
 /**
@@ -117,9 +119,11 @@ void midiActivity() {
  */
 void decayLeds() {
 	unsigned long time = millis();
-	if (redDecay < time || redDecay > (time + 30000L)) {
-		redDecay = 0;
-		digitalWrite(RED_LED, LOW);
+	for (int i = 0; i < LED_COUNT; i++) {
+		if (decay[i] < time || decay[i] > (time + 30000L)) {
+			decay[i] = 0L;
+			digitalWrite(LEDS[i], LOW);
+		}
 	}
 }
 
@@ -130,7 +134,18 @@ void handleNoteOn(byte channel, byte pitch, byte velocity) {
 	if (!isMusicMode(channel)) {
 		return;
 	}
-	midiActivity();
+	switch (channel) {
+	case CHANNEL_STEREO:
+		midiActivity(RED_LED);
+		midiActivity(GREEN_LED);
+		break;
+	case CHANNEL_LEFT:
+		midiActivity(RED_LED);
+		break;
+	case CHANNEL_RIGHT:
+		midiActivity(GREEN_LED);
+		break;
+	}
 
 	// TODO handle multiple channels (stereo/left/right) as well as polyphony.
 	YMZ.setNote(0, pitch);
@@ -146,7 +161,18 @@ void handleNoteOff(byte channel, byte pitch, byte velocity) {
 	if (!isMusicMode(channel)) {
 		return;
 	}
-	midiActivity();
+	switch (channel) {
+	case CHANNEL_STEREO:
+		midiActivity(RED_LED);
+		midiActivity(GREEN_LED);
+		break;
+	case CHANNEL_LEFT:
+		midiActivity(RED_LED);
+		break;
+	case CHANNEL_RIGHT:
+		midiActivity(GREEN_LED);
+		break;
+	}
 
 	// TODO handle multiple channels (stereo/left/right) as well as polyphony.
 
@@ -193,7 +219,8 @@ void setChannelFreqMsb(byte channel, byte reg, byte value) {
 	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](reg + 1);
 
 	// shift lower 4 bits of oldRough measurement up 8 bits and add oldFine; giving 12-bit number [0..16383]
-	uint16_t buf = ((uint16_t) (oldRough & B00001111)) << 8 + ((uint16_t) oldFine);
+	uint16_t buf = ((uint16_t) (oldRough & B00001111))
+			<< 8 + ((uint16_t) oldFine);
 
 	// take new value, use as most significant 7 bits
 	uint16_t newValue = ((uint16_t) (value & B01111111)) << 5;
@@ -206,7 +233,7 @@ void setChannelFreqMsb(byte channel, byte reg, byte value) {
 
 	// split to new MSB/LSB
 	uint8_t newFine = buf & 0xff; // lower 8 bits
-	uint8_t newRough = ((uint8_t)(buf >> 8)) & B00001111; // upper 4 bits
+	uint8_t newRough = ((uint8_t) (buf >> 8)) & B00001111; // upper 4 bits
 
 	// update
 	setters[channel - CHANNEL_RAW_STEREO](reg, newFine);
@@ -223,7 +250,8 @@ void setChannelFreqLsb(byte channel, byte reg, byte value) {
 	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](reg + 1);
 
 	// shift lower 4 bits of oldRough measurement up 8 bits and add oldFine; giving 12-bit number [0..16383]
-	uint16_t buf = ((uint16_t) (oldRough & B00001111)) << 8 + ((uint16_t) oldFine);
+	uint16_t buf = ((uint16_t) (oldRough & B00001111))
+			<< 8 + ((uint16_t) oldFine);
 
 	// take new value, use as least significant 5 bits
 	uint16_t newValue = ((uint16_t) (value & B01111100)) >> 2;
@@ -236,7 +264,7 @@ void setChannelFreqLsb(byte channel, byte reg, byte value) {
 
 	// split to new MSB/LSB
 	uint8_t newFine = buf & 0xff; // lower 8 bits
-	uint8_t newRough = ((uint8_t)(buf >> 8)) & B00001111; // upper 4 bits
+	uint8_t newRough = ((uint8_t) (buf >> 8)) & B00001111; // upper 4 bits
 
 	// update
 	setters[channel - CHANNEL_RAW_STEREO](reg, newFine);
@@ -266,7 +294,7 @@ void setEnvelopeFreqHigh(byte channel, byte value) {
 
 	// split to new MSB/LSB
 	uint8_t newFine = buf & 0xff; // lower 8 bits
-	uint8_t newRough = ((uint8_t)(buf >> 8)); // upper 8 bits
+	uint8_t newRough = ((uint8_t) (buf >> 8)); // upper 8 bits
 
 	// update
 	setters[channel - CHANNEL_RAW_STEREO](0x0b, newFine);
@@ -296,7 +324,7 @@ void setEnvelopeFreqMed(byte channel, byte value) {
 
 	// split to new MSB/LSB
 	uint8_t newFine = buf & 0xff; // lower 8 bits
-	uint8_t newRough = ((uint8_t)(buf >> 8)); // upper 8 bits
+	uint8_t newRough = ((uint8_t) (buf >> 8)); // upper 8 bits
 
 	// update
 	setters[channel - CHANNEL_RAW_STEREO](0x0b, newFine);
@@ -326,7 +354,7 @@ void setEnvelopeFreqLow(byte channel, byte value) {
 
 	// split to new MSB/LSB
 	uint8_t newFine = buf & 0xff; // lower 8 bits
-	uint8_t newRough = ((uint8_t)(buf >> 8)); // upper 8 bits
+	uint8_t newRough = ((uint8_t) (buf >> 8)); // upper 8 bits
 
 	// update
 	setters[channel - CHANNEL_RAW_STEREO](0x0b, newFine);
@@ -353,7 +381,18 @@ void handleControlChange(byte channel, byte number, byte value) {
 	if (!isRawMode(channel)) {
 		return;
 	}
-	midiActivity();
+	switch (channel) {
+	case CHANNEL_RAW_STEREO:
+		midiActivity(PINK_LED);
+		midiActivity(WHITE_LED);
+		break;
+	case CHANNEL_RAW_LEFT:
+		midiActivity(PINK_LED);
+		break;
+	case CHANNEL_RAW_RIGHT:
+		midiActivity(WHITE_LED);
+		break;
+	}
 
 	value &= B01111111; // make 7-bit clean
 
