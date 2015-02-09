@@ -133,8 +133,8 @@ class hcYmzShield {
     uint8_t getRegisterPsg0(uint8_t);
     uint8_t getRegisterPsg1(uint8_t);
   private:
-    uint8_t _psg0Registers[16];
-    uint8_t _psg1Registers[16];
+    uint8_t _psg0Registers[0xd];
+    uint8_t _psg1Registers[0xd];
     uint8_t _volume[6];
     uint8_t _tone;
     uint8_t _bpm;
