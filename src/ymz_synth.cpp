@@ -38,16 +38,20 @@
 #define CC_ENVELOPE_FREQ_MED 29  // middle 7 bits
 #define CC_ENVELOPE_FREQ_LOW 30  // low 2 bits
 #define CC_ENVELOPE_SHAPE 31
-
+#define CC_LATCH 80
 #define CC_DEBUG 119
 
-const byte hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+const byte hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
+		'C', 'D', 'E', 'F' };
 
 MIDI_CREATE_DEFAULT_INSTANCE();
 
 // define an array of LEDs so we can do patterns (left to right)
 const int LEDS[LED_COUNT] = { RED_LED, GREEN_LED, PINK_LED, WHITE_LED };
 volatile unsigned long decay[LED_COUNT] = { 0, 0, 0, 0 };
+volatile uint8_t rawRegisters0[0xd];
+volatile uint8_t rawRegisters1[0xd];
+volatile bool latched = false;
 
 // wrapper functions to allow pointer to functions
 
@@ -56,7 +60,7 @@ void setRegisterPsg(byte reg, byte value) {
 }
 
 void setRegisterPsg0(byte reg, byte value) {
-	YMZ.setRegisterPsg1(reg, value);
+	YMZ.setRegisterPsg0(reg, value);
 }
 
 void setRegisterPsg1(byte reg, byte value) {
@@ -68,7 +72,7 @@ byte getRegisterPsg(byte reg) {
 }
 
 byte getRegisterPsg0(byte reg) {
-	return YMZ.getRegisterPsg1(reg);
+	return YMZ.getRegisterPsg0(reg);
 }
 
 byte getRegisterPsg1(byte reg) {
@@ -113,7 +117,7 @@ void midiActivity(int led) {
 	digitalWrite(led, HIGH);
 	for (int i = 0; i < LED_COUNT; i++) {
 		if (LEDS[i] == led) {
-			decay[i] = millis() + 50L;
+			decay[i] = millis() + 10L;
 		}
 	}
 }
@@ -215,6 +219,26 @@ void handleNoteOff(byte channel, byte pitch, byte velocity) {
 	YMZ.setNote(5, OFF);
 }
 
+void writeAllRegisters(byte channel) {
+	if (!isRawMode(channel)) {
+		return;
+	}
+	for (int i = 0; i < 14; i++) {
+		switch (channel) {
+		case CHANNEL_RAW_STEREO:
+			setRegisterPsg1(i, rawRegisters1[i]);
+			setRegisterPsg0(i, rawRegisters0[i]);
+			break;
+		case CHANNEL_RAW_LEFT:
+			setRegisterPsg1(i, rawRegisters1[i]);
+			break;
+		case CHANNEL_RAW_RIGHT:
+			setRegisterPsg0(i, rawRegisters0[i]);
+			break;
+		}
+	}
+}
+
 void setChannelFreqMsb(byte channel, byte reg, byte value) {
 	if (!isRawMode(channel)) {
 		return;
@@ -224,7 +248,7 @@ void setChannelFreqMsb(byte channel, byte reg, byte value) {
 	uint8_t oldFine = getters[channel - CHANNEL_RAW_STEREO](reg);
 	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](reg + 1);
 
-	// shift lower 4 bits of oldRough measurement up 8 bits and add oldFine; giving 12-bit number [0..16383]
+	// shift lower 4 bits of oldRough measurement up 8 bits and add oldFine; giving 12-bit number [0..4095]
 	uint16_t buf = (uint16_t) (oldRough & B00001111);
 	buf <<= 8;
 	buf += oldFine;
@@ -243,8 +267,26 @@ void setChannelFreqMsb(byte channel, byte reg, byte value) {
 	uint8_t newRough = ((uint8_t) (buf >> 8)) & B00001111; // upper 4 bits
 
 	// update
-	setters[channel - CHANNEL_RAW_STEREO](reg, newFine);
-	setters[channel - CHANNEL_RAW_STEREO](reg + 1, newRough);
+	switch (channel) {
+	case CHANNEL_RAW_STEREO:
+		rawRegisters0[reg] = newFine;
+		rawRegisters0[reg + 1] = newRough;
+		rawRegisters1[reg] = newFine;
+		rawRegisters1[reg + 1] = newRough;
+		break;
+	case CHANNEL_RAW_LEFT:
+		rawRegisters1[reg] = newFine;
+		rawRegisters1[reg + 1] = newRough;
+		break;
+	case CHANNEL_RAW_RIGHT:
+		rawRegisters0[reg] = newFine;
+		rawRegisters0[reg + 1] = newRough;
+		break;
+	}
+	if (!latched) {
+		setters[channel - CHANNEL_RAW_STEREO](reg, newFine);
+		setters[channel - CHANNEL_RAW_STEREO](reg + 1, newRough);
+	}
 }
 
 void setChannelFreqLsb(byte channel, byte reg, byte value) {
@@ -256,7 +298,7 @@ void setChannelFreqLsb(byte channel, byte reg, byte value) {
 	uint8_t oldFine = getters[channel - CHANNEL_RAW_STEREO](reg);
 	uint8_t oldRough = getters[channel - CHANNEL_RAW_STEREO](reg + 1);
 
-	// shift lower 4 bits of oldRough measurement up 8 bits and add oldFine; giving 12-bit number [0..16383]
+	// shift lower 4 bits of oldRough measurement up 8 bits and add oldFine; giving 12-bit number [0..4095]
 	uint16_t buf = (uint16_t) (oldRough & B00001111);
 	buf <<= 8;
 	buf += oldFine;
@@ -275,8 +317,26 @@ void setChannelFreqLsb(byte channel, byte reg, byte value) {
 	uint8_t newRough = ((uint8_t) (buf >> 8)) & B00001111; // upper 4 bits
 
 	// update
-	setters[channel - CHANNEL_RAW_STEREO](reg, newFine);
-	setters[channel - CHANNEL_RAW_STEREO](reg + 1, newRough);
+	switch (channel) {
+	case CHANNEL_RAW_STEREO:
+		rawRegisters0[reg] = newFine;
+		rawRegisters0[reg + 1] = newRough;
+		rawRegisters1[reg] = newFine;
+		rawRegisters1[reg + 1] = newRough;
+		break;
+	case CHANNEL_RAW_LEFT:
+		rawRegisters1[reg] = newFine;
+		rawRegisters1[reg + 1] = newRough;
+		break;
+	case CHANNEL_RAW_RIGHT:
+		rawRegisters0[reg] = newFine;
+		rawRegisters0[reg + 1] = newRough;
+		break;
+	}
+	if (!latched) {
+		setters[channel - CHANNEL_RAW_STEREO](reg, newFine);
+		setters[channel - CHANNEL_RAW_STEREO](reg + 1, newRough);
+	}
 }
 
 void setEnvelopeFreqHigh(byte channel, byte value) {
@@ -308,8 +368,26 @@ void setEnvelopeFreqHigh(byte channel, byte value) {
 	uint8_t newRough = ((uint8_t) (buf >> 8)); // upper 8 bits
 
 	// update
-	setters[channel - CHANNEL_RAW_STEREO](0x0b, newFine);
-	setters[channel - CHANNEL_RAW_STEREO](0x0c, newRough);
+	switch (channel) {
+	case CHANNEL_RAW_STEREO:
+		rawRegisters0[0xb] = newFine;
+		rawRegisters0[0xc] = newRough;
+		rawRegisters1[0xb] = newFine;
+		rawRegisters1[0xc] = newRough;
+		break;
+	case CHANNEL_RAW_LEFT:
+		rawRegisters1[0xb] = newFine;
+		rawRegisters1[0x6] = newRough;
+		break;
+	case CHANNEL_RAW_RIGHT:
+		rawRegisters0[0xb] = newFine;
+		rawRegisters0[0x6] = newRough;
+		break;
+	}
+	if (!latched) {
+		setters[channel - CHANNEL_RAW_STEREO](0xb, newFine);
+		setters[channel - CHANNEL_RAW_STEREO](0xc, newRough);
+	}
 }
 
 void setEnvelopeFreqMed(byte channel, byte value) {
@@ -341,8 +419,26 @@ void setEnvelopeFreqMed(byte channel, byte value) {
 	uint8_t newRough = ((uint8_t) (buf >> 8)); // upper 8 bits
 
 	// update
-	setters[channel - CHANNEL_RAW_STEREO](0x0b, newFine);
-	setters[channel - CHANNEL_RAW_STEREO](0x0c, newRough);
+	switch (channel) {
+	case CHANNEL_RAW_STEREO:
+		rawRegisters0[0xb] = newFine;
+		rawRegisters0[0xc] = newRough;
+		rawRegisters1[0xb] = newFine;
+		rawRegisters1[0xc] = newRough;
+		break;
+	case CHANNEL_RAW_LEFT:
+		rawRegisters1[0xb] = newFine;
+		rawRegisters1[0x6] = newRough;
+		break;
+	case CHANNEL_RAW_RIGHT:
+		rawRegisters0[0xb] = newFine;
+		rawRegisters0[0x6] = newRough;
+		break;
+	}
+	if (!latched) {
+		setters[channel - CHANNEL_RAW_STEREO](0xb, newFine);
+		setters[channel - CHANNEL_RAW_STEREO](0xc, newRough);
+	}
 }
 
 void setEnvelopeFreqLow(byte channel, byte value) {
@@ -374,20 +470,48 @@ void setEnvelopeFreqLow(byte channel, byte value) {
 	uint8_t newRough = ((uint8_t) (buf >> 8)); // upper 8 bits
 
 	// update
-	setters[channel - CHANNEL_RAW_STEREO](0x0b, newFine);
-	setters[channel - CHANNEL_RAW_STEREO](0x0c, newRough);
+	switch (channel) {
+	case CHANNEL_RAW_STEREO:
+		rawRegisters0[0xb] = newFine;
+		rawRegisters0[0xc] = newRough;
+		rawRegisters1[0xb] = newFine;
+		rawRegisters1[0xc] = newRough;
+		break;
+	case CHANNEL_RAW_LEFT:
+		rawRegisters1[0xb] = newFine;
+		rawRegisters1[0x6] = newRough;
+		break;
+	case CHANNEL_RAW_RIGHT:
+		rawRegisters0[0xb] = newFine;
+		rawRegisters0[0x6] = newRough;
+		break;
+	}
+	if (!latched) {
+		setters[channel - CHANNEL_RAW_STEREO](0xb, newFine);
+		setters[channel - CHANNEL_RAW_STEREO](0xc, newRough);
+	}
 }
 
 void setRegister(byte channel, byte reg, byte value) {
 	switch (channel) {
 	case CHANNEL_RAW_STEREO:
-		YMZ.setRegisterPsg(reg, value);
+		rawRegisters0[reg] = value;
+		rawRegisters1[reg] = value;
+		if (!latched) {
+			YMZ.setRegisterPsg(reg, value);
+		}
 		break;
 	case CHANNEL_RAW_LEFT:
-		YMZ.setRegisterPsg1(reg, value);
+		rawRegisters1[reg] = value;
+		if (!latched) {
+			YMZ.setRegisterPsg1(reg, value);
+		}
 		break;
 	case CHANNEL_RAW_RIGHT:
-		YMZ.setRegisterPsg0(reg, value);
+		rawRegisters0[reg] = value;
+		if (!latched) {
+			YMZ.setRegisterPsg0(reg, value);
+		}
 		break;
 	default:
 		return;
@@ -459,6 +583,11 @@ void handleControlChange(byte channel, byte number, byte value) {
 	case CC_ENVELOPE_SHAPE:
 		setRegister(channel, 0x0d, (value >> 3) & B00001111); // 7 -> 4 bits
 		break;
+	case CC_LATCH:
+		latched = (value > 64);
+		if (!latched) {
+			writeAllRegisters(channel);
+		}
 	}
 }
 
